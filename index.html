@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ลานจอดรถอัจฉริยะ</title>
+  <link href="https://googleapis.com" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; }
+    body {
+      background-color: #161b26;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    /* Header */
+    header {
+      background-color: #1e2533;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border-bottom: 1px solid #2a3346;
+    }
+    .menu-icon {
+      position: absolute;
+      left: 20px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #cbd5e1;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hint {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    /* Parking Grid */
+    .parking-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 0 10px;
+    }
+    .slot {
+      aspect-ratio: 1 / 1.35;
+      border: 2px dashed #475569;
+      border-radius: 16px;
+      background-color: #1e2533;
+      transform: skewX(-12deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    /* ยกเลิกการเอียงของตัวหนังสือด้านใน */
+    .slot-content {
+      transform: skewX(12deg);
+      text-align: center;
+    }
+    .slot-icon {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #22c55e; /* สีเขียว = ว่าง */
+    }
+    .slot-label {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-top: 4px;
+    }
+    .sensor-badge {
+      font-size: 0.65rem;
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    /* สถานะไม่ว่าง (Occupied) */
+    .slot.occupied {
+      border-color: #ef4444;
+      background-color: rgba(239, 68, 68, 0.15);
+    }
+    .slot.occupied .slot-icon {
+      color: #ef4444; /* สีแดง = มีรถจอด */
+    }
+
+    /* Lane Divider */
+    .road-lane {
+      margin: 28px 0;
+      padding: 10px 0;
+      border-top: 1px solid #2a3346;
+      border-bottom: 1px solid #2a3346;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #64748b;
+      letter-spacing: 1px;
+    }
+
+    /* Bottom Summary */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 30px;
+    }
+    .summary-card {
+      background-color: #1e2533;
+      border: 1px solid #2a3346;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-title { font-size: 0.9rem; color: #cbd5e1; }
+    .summary-count { font-size: 2.2rem; font-weight: 700; margin: 4px 0; }
+    .count-occupied { color: #ef4444; }
+    .count-available { color: #22c55e; }
+    .summary-unit { font-size: 0.8rem; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="menu-icon">☰</span>
+    <h1>ลานจอดรถอัจฉริยะ</h1>
+  </header>
+
+  <main>
+    <div>
+      <p class="hint">👆 แตะที่ช่องจอดเพื่อจำลองรถเข้า / ออก</p>
+
+      <!-- แถวบน A -->
+      <div class="parking-row">
+        <div class="slot" id="slot-A-01" onclick="toggleSlot('A-01')">
+          <div class="slot-content">
+            <div class="slot-icon" id="icon-A-01">P</div>
+            <div class="slot-label">A-01</div>
+            <span class="sensor-badge">Sensor 1</span>
+          </div>
+        </div>
+        <div class="slot" id="slot-A-02" onclick="toggleSlot('A-02')">
+          <div class="slot-content">
+            <div class="slot-icon" id="icon-A-02">P</div>
+            <div class="slot-label">A-02</div>
+          </div>
+        </div>
+        <div class="slot" id="slot-A-03" onclick="toggleSlot('A-03')">
+          <div class="slot-content">
+            <div class="slot-icon" id="icon-A-03">P</div>
+            <div class="slot-label">A-03</div>
+            <span class="sensor-badge">Sensor 2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ช่องทางเดินรถ -->
+      <div class="road-lane">▲ ช่องทางเดินรถ ▼</div>
+
+      <!-- แถวล่าง B -->
+      <div class="parking-row">
+        <div class="slot" id="slot-B-01" onclick="toggleSlot('B-01')">
+          <div class="slot-content">
+            <div class="slot-icon" id="icon-B-01">P</div>
+            <div class="slot-label">B-01</div>
+            <span class="sensor-badge">Sensor 3</span>
+          </div>
+        </div>
+        <div class="slot" id="slot-B-02" onclick="toggleSlot('B-02')">
+          <div class="slot-content">
+            <div class="slot-icon" id="icon-B-02">P</div>
+            <div class="slot-label">B-02</div>
+          </div>
+        </div>
+        <div class="slot" id="slot-B-03" onclick="toggleSlot('B-03')">
+          <div class="slot-content">
+            <div class="slot-icon" id="icon-B-03">P</div>
+            <div class="slot-label">B-03</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สรุปจำนวนด้านล่าง -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-title">จำนวนรถ</div>
+        <div class="summary-count count-occupied" id="occupied-count">0</div>
+        <div class="summary-unit">คัน</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-title">ช่องที่ว่าง</div>
+        <div class="summary-count count-available" id="available-count">6</div>
+        <div class="summary-unit">ช่อง</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- เชื่อมต่อ Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://gstatic.com";
+    import { getDatabase, ref, onValue, set } from "https://gstatic.com";
+
+    // ⚠️ นำค่า Config จาก Firebase ของคุณมาแทนที่ตรงนี้
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_://firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_://appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const slotsRef = ref(db, 'parking_slots');
+
+    const allSlots = ['A-01', 'A-02', 'A-03', 'B-01', 'B-02', 'B-03'];
+    let currentState = {
+      'A-01': false, 'A-02': false, 'A-03': false,
+      'B-01': false, 'B-02': false, 'B-03': false
+    };
+
+    // รับข้อมูล Real-time จาก Firebase (ทั้งจาก ESP32 และการกดหน้าเว็บ)
+    onValue(slotsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        currentState = { ...currentState, ...data };
+      }
+      updateUI();
+    });
+
+    // อัปเดตหน้าจอตามสถานะ
+    function updateUI() {
+      let occupied = 0;
+      allSlots.forEach(id => {
+        const isOccupied = Boolean(currentState[id]);
+        const slotEl = document.getElementById(`slot-${id}`);
+        const iconEl = document.getElementById(`icon-${id}`);
+
+        if (isOccupied) {
+          occupied++;
+          slotEl.classList.add('occupied');
+          iconEl.textContent = '🚗';
+        } else {
+          slotEl.classList.remove('occupied');
+          iconEl.textContent = 'P';
+        }
+      });
+
+      document.getElementById('occupied-count').textContent = occupied;
+      document.getElementById('available-count').textContent = allSlots.length - occupied;
+    }
+
+    // ฟังก์ชันกดจำลองรถเข้า-ออก (ส่งค่าขึ้น Firebase)
+    window.toggleSlot = function(slotId) {
+      const newState = !currentState[slotId];
+      set(ref(db, `parking_slots/${slotId}`), newState);
+    };
+  </script>
+</body>
+</html>
